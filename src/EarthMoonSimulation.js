@@ -69,13 +69,13 @@ const EarthMoonSimulation = () => {
     scene.add(starField);
 
     const earthGeometry = new THREE.SphereGeometry(1, 32, 32);
-    const earthTexture = new THREE.TextureLoader().load('/images/earth_texture.jpg');
+    const earthTexture = new THREE.TextureLoader().load('/images/earthtexture.jpg');
     const earthMaterial = new THREE.MeshPhongMaterial({ map: earthTexture });
     const earth = new THREE.Mesh(earthGeometry, earthMaterial);
     scene.add(earth);
 
     const moonGeometry = new THREE.SphereGeometry(0.27, 32, 32);
-    const moonTexture = new THREE.TextureLoader().load('/images/moon_texture.jpg');
+    const moonTexture = new THREE.TextureLoader().load('/images/moontexture.jpg');
     const moonMaterial = new THREE.MeshPhongMaterial({ map: moonTexture });
     const moon = new THREE.Mesh(moonGeometry, moonMaterial);
     scene.add(moon);
