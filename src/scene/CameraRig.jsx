@@ -2,11 +2,21 @@ import { useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useSimulation } from '../state/SimulationContext'
+import { ORBIT } from '../physics/nbody'
 
-const SYSTEM_POS = new THREE.Vector3(0, 1.35, 8.2)
-const INTRO_FROM = new THREE.Vector3(0, 3.4, 15)
+const SYSTEM_POS = new THREE.Vector3(0, ORBIT.mars * 0.38, ORBIT.mars * 1.05)
+const INTRO_FROM = new THREE.Vector3(0, ORBIT.mars * 0.65, ORBIT.mars * 1.55)
 
-export function CameraRig({ earthRef, moonRef }) {
+const FOCUS_OFFSET = {
+  sun: [7, 2.8, 9],
+  mercury: [0.7, 0.3, 0.95],
+  venus: [1.3, 0.5, 1.7],
+  earth: [1.4, 0.55, 1.8],
+  moon: [0.55, 0.22, 0.7],
+  mars: [0.95, 0.4, 1.2],
+}
+
+export function CameraRig({ refs }) {
   const { focus } = useSimulation()
   const { camera, controls } = useThree()
   const intro = useRef(true)
@@ -16,7 +26,7 @@ export function CameraRig({ earthRef, moonRef }) {
 
   useFrame((_, delta) => {
     if (intro.current) {
-      introT.current = Math.min(1, introT.current + delta * 0.38)
+      introT.current = Math.min(1, introT.current + delta * 0.3)
       const t = 1 - (1 - introT.current) ** 3
       camera.position.lerpVectors(INTRO_FROM, SYSTEM_POS, t)
       camera.lookAt(0, 0, 0)
@@ -36,21 +46,18 @@ export function CameraRig({ earthRef, moonRef }) {
       return
     }
 
-    if (focus === 'earth' && earthRef.current) {
+    const bodyRef = refs[focus]
+    const offset = FOCUS_OFFSET[focus]
+    if (bodyRef?.current && offset) {
       const p = new THREE.Vector3()
-      earthRef.current.getWorldPosition(p)
-      desired.current.set(p.x + 2.4, p.y + 0.9, p.z + 3.1)
-      lookAt.current.copy(p)
-    } else if (focus === 'moon' && moonRef.current) {
-      const p = new THREE.Vector3()
-      moonRef.current.getWorldPosition(p)
-      desired.current.set(p.x + 1.15, p.y + 0.5, p.z + 1.55)
+      bodyRef.current.getWorldPosition(p)
+      desired.current.set(p.x + offset[0], p.y + offset[1], p.z + offset[2])
       lookAt.current.copy(p)
     }
 
-    camera.position.lerp(desired.current, 1 - Math.exp(-2.4 * delta))
+    camera.position.lerp(desired.current, 1 - Math.exp(-2.2 * delta))
     camera.lookAt(lookAt.current)
-    if (controls) controls.target.lerp(lookAt.current, 1 - Math.exp(-2.6 * delta))
+    if (controls) controls.target.lerp(lookAt.current, 1 - Math.exp(-2.4 * delta))
   })
 
   return null

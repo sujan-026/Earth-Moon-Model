@@ -229,22 +229,33 @@ canvas {
   position: absolute;
   right: clamp(1.25rem, 3vw, 2.5rem);
   bottom: clamp(1rem, 3vw, 2rem);
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
   color: var(--muted);
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   opacity: 0;
   animation: rise 1s var(--ease) 1s forwards;
+  z-index: 3;
 }
 
 .credit a {
   color: var(--ink);
   text-decoration: none;
+  padding: 0.35rem 0.15rem;
   border-bottom: 1px solid transparent;
-  transition: border-color 0.25s ease;
+  transition: border-color 0.25s ease, color 0.25s ease;
 }
 
 .credit a:hover {
   border-bottom-color: var(--copper);
+  color: var(--copper);
+}
+
+.dock__group--views {
+  flex-wrap: wrap;
+  max-width: min(36rem, 70vw);
 }
 
 .hint {

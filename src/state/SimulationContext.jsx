@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState } from 'react'
+import { BODY_COPY } from './bodies'
 
 const SimulationContext = createContext(null)
 
@@ -36,25 +37,4 @@ export function useSimulation() {
   return ctx
 }
 
-export const BODY_COPY = {
-  earth: {
-    kicker: 'Home world',
-    title: 'Earth',
-    copy: 'A living sphere wrapped in thin blue air. From here the Moon keeps one face turned toward us — a quiet companion in the dark.',
-    meta: [
-      ['Mean radius', '6,371 km'],
-      ['Day length', '23.93 h'],
-      ['Axial tilt', '23.4°'],
-    ],
-  },
-  moon: {
-    kicker: 'Companion',
-    title: 'Moon',
-    copy: 'Scarred highland and dark maria, locked in synchrony. Its orbit draws a silver thread around Earth — the rhythm behind our tides.',
-    meta: [
-      ['Mean radius', '1,737 km'],
-      ['Orbital period', '27.3 d'],
-      ['Distance', '~384,400 km'],
-    ],
-  },
-}
+export { BODY_COPY }

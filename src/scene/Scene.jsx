@@ -4,131 +4,230 @@ import { Stars, OrbitControls, Line } from '@react-three/drei'
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import { useSimulation } from '../state/SimulationContext'
+import {
+  RADIUS,
+  ORBIT,
+  createInitialState,
+  stepBodies,
+  moonPhaseAngle,
+  orbitEllipsePoints,
+} from '../physics/nbody'
+import { Sun } from './Sun'
 import { Earth } from './Earth'
 import { Moon } from './Moon'
+import { Planet } from './Planet'
+import { Atmosphere } from './Atmosphere'
 import { CameraRig } from './CameraRig'
 
-const EARTH_RADIUS = 1.35
-const MOON_RADIUS = 0.37
-const ORBIT_RADIUS = 4.2
-const ORBIT_INCLINATION = 0.09
+const ORBIT_META = {
+  mercury: { radius: ORBIT.mercury, color: '#b0aaa0', incline: 0 },
+  venus: { radius: ORBIT.venus, color: '#d4b896', incline: 0 },
+  earth: { radius: ORBIT.earth, color: '#c9a57a', incline: 0 },
+  mars: { radius: ORBIT.mars, color: '#c4845c', incline: 0 },
+  moon: {
+    radius: ORBIT.moon,
+    color: '#d8dce6',
+    incline: ORBIT.moonInclination,
+  },
+}
+
+function SunOrbitPath({ bodyId, activeId }) {
+  const meta = ORBIT_META[bodyId]
+  const active = activeId === bodyId
+  const points = useMemo(
+    () =>
+      orbitEllipsePoints(meta.radius, meta.incline).map(
+        (p) => new THREE.Vector3(...p),
+      ),
+    [meta.radius, meta.incline],
+  )
+
+  return (
+    <Line
+      points={points}
+      color={active ? '#f0e6d2' : meta.color}
+      transparent
+      opacity={active ? 0.95 : activeId ? 0.06 : 0.16}
+      lineWidth={active ? 2 : 1}
+    />
+  )
+}
+
+/** Moon orbit centered on Earth — follows Earth each frame. */
+function MoonOrbitPath({ earthRef, active, dimmed }) {
+  const groupRef = useRef()
+  const points = useMemo(
+    () =>
+      orbitEllipsePoints(ORBIT.moon, ORBIT.moonInclination).map(
+        (p) => new THREE.Vector3(...p),
+      ),
+    [],
+  )
+
+  useFrame(() => {
+    if (!groupRef.current || !earthRef.current) return
+    groupRef.current.position.copy(earthRef.current.position)
+  })
+
+  return (
+    <group ref={groupRef}>
+      <Line
+        points={points}
+        color={active ? '#f0e6d2' : '#a8b0c0'}
+        transparent
+        opacity={active ? 0.95 : dimmed ? 0.05 : 0.2}
+        lineWidth={active ? 2 : 1}
+      />
+    </group>
+  )
+}
 
 export function Scene() {
-  const { paused, timeScale, setPhaseAngle, setSelected, setFocus } = useSimulation()
-  const groupRef = useRef()
-  const moonRef = useRef()
+  const { paused, timeScale, setPhaseAngle, setSelected, setFocus, selected, focus } =
+    useSimulation()
+  const sunRef = useRef()
+  const mercuryRef = useRef()
+  const venusRef = useRef()
   const earthRef = useRef()
-  const angleRef = useRef(0.8)
+  const moonRef = useRef()
+  const marsRef = useRef()
+  const refs = {
+    sun: sunRef,
+    mercury: mercuryRef,
+    venus: venusRef,
+    earth: earthRef,
+    moon: moonRef,
+    mars: marsRef,
+  }
+  const stateRef = useRef(createInitialState())
   const phaseTick = useRef(0)
+  const tmpLook = useMemo(() => new THREE.Vector3(), [])
 
-  const orbitPoints = useMemo(() => {
-    const pts = []
-    for (let i = 0; i <= 128; i++) {
-      const t = (i / 128) * Math.PI * 2
-      pts.push(
-        new THREE.Vector3(
-          Math.cos(t) * ORBIT_RADIUS,
-          Math.sin(t) * ORBIT_RADIUS * ORBIT_INCLINATION,
-          Math.sin(t) * ORBIT_RADIUS,
-        ),
-      )
-    }
-    return pts
-  }, [])
+  const activeOrbit =
+    selected && selected !== 'sun'
+      ? selected
+      : focus !== 'system' && focus !== 'sun'
+        ? focus
+        : null
 
   useFrame((_, delta) => {
     if (paused) return
-    const speed = 0.18 * timeScale
-    angleRef.current += delta * speed
-    phaseTick.current += delta
-    if (phaseTick.current > 0.4) {
-      phaseTick.current = 0
-      setPhaseAngle(angleRef.current)
+
+    const dt = Math.min(delta, 0.05) * timeScale
+    const steps = Math.max(1, Math.ceil(timeScale * 2))
+    const h = dt / steps
+    for (let i = 0; i < steps; i++) {
+      stepBodies(stateRef.current, h)
     }
 
-    const a = angleRef.current
+    const { mercury, venus, earth, moon, mars } = stateRef.current
+
+    if (mercuryRef.current) {
+      mercuryRef.current.position.set(...mercury.position)
+      mercuryRef.current.rotation.y += dt * 0.35
+    }
+    if (venusRef.current) {
+      venusRef.current.position.set(...venus.position)
+      venusRef.current.rotation.y += dt * 0.2
+    }
+    if (earthRef.current) {
+      earthRef.current.position.set(...earth.position)
+      earthRef.current.rotation.y += dt * 0.55
+    }
+    if (marsRef.current) {
+      marsRef.current.position.set(...mars.position)
+      marsRef.current.rotation.y += dt * 0.48
+    }
     if (moonRef.current) {
-      moonRef.current.position.set(
-        Math.cos(a) * ORBIT_RADIUS,
-        Math.sin(a) * ORBIT_RADIUS * ORBIT_INCLINATION,
-        Math.sin(a) * ORBIT_RADIUS,
-      )
-      moonRef.current.lookAt(0, 0, 0)
+      moonRef.current.position.set(...moon.position)
+      tmpLook.set(...earth.position)
+      moonRef.current.lookAt(tmpLook)
       moonRef.current.rotateY(Math.PI)
     }
 
-    if (earthRef.current) {
-      earthRef.current.rotation.y += delta * 0.12 * timeScale
+    phaseTick.current += delta
+    if (phaseTick.current > 0.35) {
+      phaseTick.current = 0
+      setPhaseAngle(moonPhaseAngle(earth.position, moon.position))
     }
   })
 
   return (
     <>
-      <ambientLight intensity={0.08} color="#c9d4e8" />
-      <directionalLight
-        castShadow
-        intensity={2.4}
-        position={[12, 4, 6]}
-        color="#fff4e5"
-      />
-      <directionalLight intensity={0.25} position={[-8, -2, -4]} color="#6b7c9c" />
-
-      <mesh position={[18, 6, 10]}>
-        <sphereGeometry args={[0.55, 24, 24]} />
-        <meshBasicMaterial color="#ffe9c4" />
-      </mesh>
-      <mesh position={[18, 6, 10]}>
-        <sphereGeometry args={[1.4, 24, 24]} />
-        <meshBasicMaterial color="#ffd7a0" transparent opacity={0.12} depthWrite={false} />
-      </mesh>
+      <ambientLight intensity={0.035} color="#9eb6d4" />
 
       <Stars
-        radius={90}
-        depth={50}
-        count={4500}
-        factor={3.2}
+        radius={220}
+        depth={80}
+        count={6500}
+        factor={3.6}
         saturation={0}
         fade
-        speed={0.2}
+        speed={0.15}
       />
 
       <group
-        ref={groupRef}
         onPointerMissed={() => {
           setSelected(null)
           setFocus('system')
         }}
       >
-        <Line
-          points={orbitPoints}
-          color="#c9a57a"
-          transparent
-          opacity={0.22}
-          lineWidth={1}
+        <SunOrbitPath bodyId="mercury" activeId={activeOrbit} />
+        <SunOrbitPath bodyId="venus" activeId={activeOrbit} />
+        <SunOrbitPath bodyId="earth" activeId={activeOrbit} />
+        <SunOrbitPath bodyId="mars" activeId={activeOrbit} />
+        <MoonOrbitPath
+          earthRef={earthRef}
+          active={activeOrbit === 'moon'}
+          dimmed={Boolean(activeOrbit) && activeOrbit !== 'moon'}
         />
-        <Earth ref={earthRef} radius={EARTH_RADIUS} />
-        <Moon ref={moonRef} radius={MOON_RADIUS} />
+
+        <Sun ref={sunRef} radius={RADIUS.sun} />
+        <Planet
+          ref={mercuryRef}
+          id="mercury"
+          radius={RADIUS.mercury}
+          textureUrl="/images/mercurytexture.png"
+          roughness={0.92}
+        />
+        <Planet
+          ref={venusRef}
+          id="venus"
+          radius={RADIUS.venus}
+          textureUrl="/images/venustexture.png"
+          roughness={0.7}
+          atmosphere={<Atmosphere radius={RADIUS.venus * 1.04} color="#e8c89a" />}
+        />
+        <Earth ref={earthRef} radius={RADIUS.earth} />
+        <Moon ref={moonRef} radius={RADIUS.moon} />
+        <Planet
+          ref={marsRef}
+          id="mars"
+          radius={RADIUS.mars}
+          textureUrl="/images/marstexture.png"
+          roughness={0.9}
+        />
       </group>
 
-      <CameraRig earthRef={earthRef} moonRef={moonRef} />
+      <CameraRig refs={refs} />
       <OrbitControls
         makeDefault
         enablePan={false}
-        minDistance={2.2}
-        maxDistance={16}
-        maxPolarAngle={Math.PI * 0.9}
+        minDistance={4}
+        maxDistance={120}
+        maxPolarAngle={Math.PI * 0.92}
         enableDamping
         dampingFactor={0.06}
       />
 
-      <EffectComposer multisampling={0}>
+      <EffectComposer multisampling={0} enableNormalPass={false}>
         <Bloom
-          intensity={0.35}
-          luminanceThreshold={0.85}
-          luminanceSmoothing={0.4}
+          intensity={1.15}
+          luminanceThreshold={0.55}
+          luminanceSmoothing={0.3}
           mipmapBlur
         />
-        <Vignette offset={0.25} darkness={0.55} />
+        <Vignette offset={0.28} darkness={0.5} />
       </EffectComposer>
     </>
   )

@@ -1,5 +1,15 @@
 import { BODY_COPY, useSimulation } from '../state/SimulationContext'
 
+const VIEW_BUTTONS = [
+  { id: 'system', label: 'System' },
+  { id: 'sun', label: 'Sun' },
+  { id: 'mercury', label: 'Mercury' },
+  { id: 'venus', label: 'Venus' },
+  { id: 'earth', label: 'Earth' },
+  { id: 'moon', label: 'Moon' },
+  { id: 'mars', label: 'Mars' },
+]
+
 function formatPhase(angle) {
   const turns = ((angle / (Math.PI * 2)) % 1 + 1) % 1
   if (turns < 0.03 || turns > 0.97) return 'New'
@@ -32,8 +42,8 @@ export function Hud() {
       <header className="brand">
         <h1 className="brand__mark">Selene</h1>
         <p className="brand__line">
-          A quiet observatory for Earth and her Moon — orbit, phase, and presence in
-          one continuous night sky.
+          The inner solar system under real gravity — Mercury to Mars, with Earth's
+          Moon still in tow.
         </p>
       </header>
 
@@ -61,44 +71,25 @@ export function Hud() {
         )}
       </aside>
 
-      <p className="hint">Drag to orbit · Click a world</p>
+      <p className="hint">Drag to orbit · Click a body</p>
 
       <div className="dock" role="toolbar" aria-label="Orbit controls">
-        <div className="dock__group">
+        <div className="dock__group dock__group--views">
           <span className="dock__label">View</span>
-          <button
-            type="button"
-            className="dock__btn"
-            aria-pressed={focus === 'system'}
-            onClick={() => {
-              setFocus('system')
-              setSelected(null)
-            }}
-          >
-            System
-          </button>
-          <button
-            type="button"
-            className="dock__btn"
-            aria-pressed={focus === 'earth'}
-            onClick={() => {
-              setFocus('earth')
-              setSelected('earth')
-            }}
-          >
-            Earth
-          </button>
-          <button
-            type="button"
-            className="dock__btn"
-            aria-pressed={focus === 'moon'}
-            onClick={() => {
-              setFocus('moon')
-              setSelected('moon')
-            }}
-          >
-            Moon
-          </button>
+          {VIEW_BUTTONS.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              className="dock__btn"
+              aria-pressed={focus === id}
+              onClick={() => {
+                setFocus(id)
+                setSelected(id === 'system' ? null : id)
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         <div className="dock__divider" />
@@ -116,7 +107,7 @@ export function Hud() {
             className="dock__slider"
             type="range"
             min="0.15"
-            max="3"
+            max="8"
             step="0.05"
             value={timeScale}
             aria-label="Orbit speed"
@@ -126,11 +117,10 @@ export function Hud() {
       </div>
 
       <p className="credit">
-        Crafted by Sujan ·{' '}
+        <span>Crafted by Sujan</span>
         <a href="https://github.com/sujan-026" target="_blank" rel="noreferrer">
           GitHub
         </a>
-        {' · '}
         <a
           href="https://www.linkedin.com/in/sujan-p-443745244/"
           target="_blank"

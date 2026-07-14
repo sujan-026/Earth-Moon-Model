@@ -26,17 +26,17 @@ const atmosphereFragment = /* glsl */ `
   }
 `
 
-export function Atmosphere({ radius }) {
+export function Atmosphere({ radius, color = '#7eb6ff', intensity = 0.85 }) {
   const uniforms = useMemo(
     () => ({
-      uGlowColor: { value: new THREE.Color('#7eb6ff') },
-      uIntensity: { value: 0.85 },
+      uGlowColor: { value: new THREE.Color(color) },
+      uIntensity: { value: intensity },
     }),
-    [],
+    [color, intensity],
   )
 
   useFrame(({ clock }) => {
-    uniforms.uIntensity.value = 0.78 + Math.sin(clock.elapsedTime * 0.4) * 0.06
+    uniforms.uIntensity.value = intensity * 0.92 + Math.sin(clock.elapsedTime * 0.4) * 0.06
   })
 
   return (

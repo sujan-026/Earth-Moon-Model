@@ -28,13 +28,7 @@ export const Moon = forwardRef(function Moon({ radius = 0.37 }, ref) {
       }}
     >
       <sphereGeometry args={[radius, 48, 48]} />
-      <meshStandardMaterial
-        map={texture}
-        roughness={0.95}
-        metalness={0.02}
-        emissive="#1a1814"
-        emissiveIntensity={0.12}
-      />
+      <meshStandardMaterial map={texture} roughness={0.96} metalness={0.02} />
     </mesh>
   )
 })

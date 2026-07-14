@@ -2,11 +2,20 @@ import { forwardRef, useMemo } from 'react'
 import { useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 import { useSimulation } from '../state/SimulationContext'
-import { Atmosphere } from './Atmosphere'
 
-export const Earth = forwardRef(function Earth({ radius = 1.35 }, ref) {
+export const Planet = forwardRef(function Planet(
+  {
+    id,
+    radius = 0.4,
+    textureUrl,
+    roughness = 0.85,
+    metalness = 0.04,
+    atmosphere = null,
+  },
+  ref,
+) {
   const { setSelected, setFocus } = useSimulation()
-  const texture = useTexture('/images/earthtexture.jpg')
+  const texture = useTexture(textureUrl)
 
   useMemo(() => {
     texture.colorSpace = THREE.SRGBColorSpace
@@ -18,8 +27,8 @@ export const Earth = forwardRef(function Earth({ radius = 1.35 }, ref) {
       <mesh
         onClick={(e) => {
           e.stopPropagation()
-          setSelected('earth')
-          setFocus('earth')
+          setSelected(id)
+          setFocus(id)
         }}
         onPointerOver={() => {
           document.body.style.cursor = 'pointer'
@@ -31,12 +40,11 @@ export const Earth = forwardRef(function Earth({ radius = 1.35 }, ref) {
         <sphereGeometry args={[radius, 64, 64]} />
         <meshStandardMaterial
           map={texture}
-          roughness={0.78}
-          metalness={0.04}
-          envMapIntensity={0.3}
+          roughness={roughness}
+          metalness={metalness}
         />
       </mesh>
-      <Atmosphere radius={radius * 1.035} />
+      {atmosphere}
     </group>
   )
 })
